@@ -1,0 +1,40 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+require('dotenv').config();
+
+import express from 'express';
+import path from 'path';
+
+import { connectToDb } from './lib/database';
+import router from './lib/router';
+
+const { PORT = 3001 } = process.env;
+const app = express();
+
+// Middleware that parses json and looks at requests where the Content-Type header matches the type option.
+app.use(express.json());
+
+// Serve API requests from the router
+app.use('/api', router);
+
+// Serve storybook production bundle
+app.use('/storybook', express.static('dist/storybook'));
+
+// Serve app production bundle
+app.use(express.static('dist/app'));
+
+// Handle client routing, return all requests to the app
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'app/index.html'));
+});
+
+async function run() {
+  console.log('Connection to Database...');
+  await connectToDb(process.env.DB_URI, process.env.DB_NAME);
+  console.log('Connected to Database');
+
+  app.listen(PORT, () => {
+    console.log(`Server listening at http://localhost:${PORT}`);
+  });
+}
+
+run();
